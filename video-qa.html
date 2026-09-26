@@ -1,0 +1,455 @@
+<title>СТОП-КАДР</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@600&display=swap">
+<style>
+:root{
+  --bg:#EEF1F0; --surface:#FFFFFF; --sunk:#E4E8E7; --ink:#1A2026; --muted:#5A6570; --line:#D3D9D8;
+  --accent:#2750C8; --accent-ink:#FFFFFF; --accent-soft:#E2E8FA;
+  --ok:#2B7A4D; --ok-soft:#DCEEE3; --warn:#A0640C; --warn-soft:#F6E8CC; --bad:#B6372A; --bad-soft:#F5DCD8;
+  --tl:#1C232A; --tl-ink:#C9D1D8; --pending:#7A8590;
+  --r:6px;
+  --f-display:"Unbounded","Onest",system-ui,sans-serif;
+  --f-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#11161B; --surface:#192027; --sunk:#222A32; --ink:#E3E7EA; --muted:#97A2AC; --line:#2D3741;
+    --accent:#809DF3; --accent-ink:#0D1320; --accent-soft:#212E52;
+    --ok:#6CC592; --ok-soft:#1A3325; --warn:#E2AC54; --warn-soft:#382B13; --bad:#EF8272; --bad-soft:#43211C;
+    --tl:#0A0E12; --tl-ink:#A9B3BC; --pending:#5E6973;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#11161B; --surface:#192027; --sunk:#222A32; --ink:#E3E7EA; --muted:#97A2AC; --line:#2D3741;
+  --accent:#809DF3; --accent-ink:#0D1320; --accent-soft:#212E52;
+  --ok:#6CC592; --ok-soft:#1A3325; --warn:#E2AC54; --warn-soft:#382B13; --bad:#EF8272; --bad-soft:#43211C;
+  --tl:#0A0E12; --tl-ink:#A9B3BC; --pending:#5E6973;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding:0 16px 48px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+header.top{max-width:1360px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;padding-block:22px 18px;border-bottom:1px solid var(--line)}
+.brand{font-family:var(--f-display);font-weight:600;font-size:22px;letter-spacing:.02em;margin:0;display:flex;align-items:center;gap:10px}
+.brand .rec{width:12px;height:12px;border-radius:50%;background:var(--bad);display:inline-block}
+.tagline{color:var(--muted);margin:0;max-width:64ch}
+
+main{max-width:1360px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:24px;padding-top:22px}
+@media (min-width:1040px){main{grid-template-columns:minmax(0,440px) minmax(0,1fr);align-items:start}}
+.panel{display:grid;gap:18px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px}
+.step h2{margin:0;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px}
+.step h2 .n{font-family:var(--f-mono);color:var(--accent)}
+.hint{margin:0;color:var(--muted);font-size:13px}
+.drop{border:1.5px dashed var(--line);border-radius:var(--r);padding:22px 16px;text-align:center;cursor:pointer;background:var(--sunk);display:grid;gap:4px}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop input{display:none}
+.fileline{display:flex;gap:8px;justify-content:space-between;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.fileline b{color:var(--ink);font-weight:500;word-break:break-all}
+.stage{width:100%;max-width:100%;background:#000;border-radius:4px;overflow:hidden}
+.stage video{display:block;width:100%;max-height:320px}
+textarea{width:100%;min-height:200px;resize:vertical;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:10px 12px;line-height:1.45}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 14px}
+.field{display:grid;gap:4px;font-size:13px}
+.field span{color:var(--muted)}
+.field input,.field select{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:7px 9px;width:100%}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:8px 14px;cursor:pointer;font-weight:500}
+.btn:hover:not(:disabled){border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);padding:11px 18px;font-weight:600}
+.btn.small{padding:5px 10px;font-size:13px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.bar{height:6px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.status{font-size:13px;color:var(--muted)}
+.note{border-radius:var(--r);padding:10px 12px;font-size:14px;background:var(--warn-soft);color:var(--warn)}
+.note.bad{background:var(--bad-soft);color:var(--bad)}
+
+.report{display:grid;gap:14px;min-width:0}
+.report-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.report-head h2{margin:0;font-family:var(--f-display);font-size:18px;font-weight:600;display:flex;gap:10px;align-items:center}
+.sample-tag{font-family:var(--f-body);font-size:12px;font-weight:600;background:var(--sunk);color:var(--muted);border-radius:99px;padding:2px 10px}
+.summary{display:flex;flex-wrap:wrap;gap:8px}
+.stat{display:flex;align-items:baseline;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:8px 14px}
+.stat b{font-family:var(--f-mono);font-size:20px;font-weight:600}
+.stat.ok b{color:var(--ok)} .stat.partial b{color:var(--warn)} .stat.mismatch b{color:var(--bad)}
+.stat span{font-size:13px;color:var(--muted)}
+.timeline{background:var(--tl);border-radius:var(--r);padding:12px 12px 8px;display:grid;gap:6px}
+.track{position:relative;height:34px;background:rgba(255,255,255,.06);border-radius:3px}
+.range{position:absolute;top:0;bottom:0;border:0;padding:0;cursor:pointer;opacity:.85;border-right:1px solid var(--tl)}
+.range:hover{opacity:1;outline:2px solid #fff;outline-offset:-2px}
+.range.ok{background:var(--ok)} .range.partial{background:var(--warn)} .range.mismatch{background:var(--bad)} .range.pending{background:var(--pending)} .range.error{background:repeating-linear-gradient(45deg,var(--pending) 0 4px,transparent 4px 8px)}
+.range i{position:absolute;left:50%;top:-4px;bottom:-4px;width:2px;background:#fff;opacity:.8}
+.ticks{display:flex;justify-content:space-between;font:11px var(--f-mono);color:var(--tl-ink)}
+.list{display:grid;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:var(--r);display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:14px;padding:12px}
+.card.ok{border-left-color:var(--ok)} .card.partial{border-left-color:var(--warn)} .card.mismatch{border-left-color:var(--bad)}
+@media (max-width:620px){.card{grid-template-columns:minmax(0,1fr)}}
+.thumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:4px;display:block;background:var(--sunk)}
+.thumb.fake{background:linear-gradient(135deg,var(--sunk),var(--line));display:grid;place-items:center;color:var(--muted);font-size:12px}
+.card-side{display:grid;gap:6px;align-content:start}
+.tc{border:0;background:none;padding:0;cursor:pointer;color:var(--accent);font-family:var(--f-mono);font-size:13px;font-weight:600;text-align:left}
+.tc:hover{text-decoration:underline}
+.card-body{display:grid;gap:8px;min-width:0}
+.card-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{font-size:12px;font-weight:600;border-radius:99px;padding:2px 10px;background:var(--sunk);color:var(--muted)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.partial{background:var(--warn-soft);color:var(--warn)} .pill.mismatch{background:var(--bad-soft);color:var(--bad)}
+.lbl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 2px}
+.frag{font-size:14px;color:var(--muted);overflow-wrap:anywhere}
+.said{overflow-wrap:anywhere}
+.issues{margin:0;padding-left:18px;color:var(--bad);font-size:14px}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:20px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <h1 class="brand"><span class="rec" aria-hidden="true"></span>СТОП-КАДР</h1>
+  <p class="tagline">Смысловая сверка видеоряда со сценарием: Claude смотрит на контрольные кадры и сравнивает их с тем, что в этот момент должно быть по тексту. Проверяет и титры на кадре.</p>
+</header>
+
+<main>
+  <section class="panel" aria-label="Настройка проверки">
+    <div class="step">
+      <h2><span class="n">1</span> Видео</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept="video/*">
+        <strong>Перетащите видеофайл сюда</strong>
+        <span class="hint">или нажмите, чтобы выбрать. Видео остаётся в браузере, Claude получает только контрольные кадры.</span>
+      </label>
+      <div class="fileline" id="fileline" hidden><span>Файл: <b id="fname"></b></span><span class="mono" id="fdur"></span></div>
+      <div class="stage" id="stage" hidden><video id="preview" controls playsinline preload="metadata"></video></div>
+    </div>
+
+    <div class="step">
+      <h2><span class="n">2</span> Сценарий</h2>
+      <textarea id="script" spellcheck="false" placeholder="Вставьте текст сценария по порядку, без таймкодов: подводка, закадр, синхроны, титры."></textarea>
+      <p class="hint" id="scriptInfo">Предложений: 0</p>
+    </div>
+
+    <div class="step">
+      <h2><span class="n">3</span> Параметры</h2>
+      <div class="grid2">
+        <label class="field"><span>Контрольных точек</span><input type="number" id="points" min="2" max="30" value="8"></label>
+        <label class="field"><span>Модель</span>
+          <select id="tier">
+            <option value="quick">Быстрая</option>
+            <option value="default" selected>Сбалансированная</option>
+            <option value="complex">Самая точная</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint">Каждая точка — один запрос к Claude за счёт вашей квоты. Таймкоды оценочные: сценарий делится на части пропорционально длине текста.</p>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="run" disabled>Проверить</button>
+      <button class="btn" id="stop" hidden>Остановить</button>
+    </div>
+    <div id="progress" hidden style="display:grid;gap:6px">
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="status mono" id="status"></div>
+    </div>
+    <div class="note" id="note" hidden></div>
+  </section>
+
+  <section class="report" aria-label="Отчёт">
+    <div class="report-head">
+      <h2>Отчёт <span class="sample-tag" id="sampleTag">пример</span></h2>
+      <button class="btn small" id="exp" disabled>Скачать .md</button>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="timeline">
+      <div class="track" id="track"></div>
+      <div class="ticks" id="ticks"></div>
+    </div>
+    <div class="list" id="list"></div>
+  </section>
+</main>
+
+<script>
+(() => {
+"use strict";
+const $ = (s) => document.querySelector(s);
+const E = {
+  drop:$("#drop"), file:$("#file"), fileline:$("#fileline"), fname:$("#fname"), fdur:$("#fdur"), stage:$("#stage"), preview:$("#preview"),
+  script:$("#script"), scriptInfo:$("#scriptInfo"), points:$("#points"), tier:$("#tier"),
+  run:$("#run"), stop:$("#stop"), progress:$("#progress"), barFill:$("#barFill"), status:$("#status"), note:$("#note"),
+  sampleTag:$("#sampleTag"), exp:$("#exp"), summary:$("#summary"), track:$("#track"), ticks:$("#ticks"), list:$("#list"),
+};
+const V = {
+  ok:{label:"Соответствует", md:"СООТВЕТСТВУЕТ"},
+  partial:{label:"Частично / проверить", md:"ЧАСТИЧНОЕ СООТВЕТСТВИЕ"},
+  mismatch:{label:"Несоответствие", md:"НЕСООТВЕТСТВИЕ"},
+  pending:{label:"В очереди", md:"НЕ ПРОВЕРЕНО"},
+  error:{label:"Не проверено", md:"НЕ ПРОВЕРЕНО"},
+};
+
+// Пример отчёта — показывается, пока пользователь не запустил свою проверку
+const EXAMPLE = {
+  fileName:"пример — сюжет о порте", duration:96,
+  points:[
+    {start:0, end:14, t:7, verdict:"ok", fragment:"Грузооборот порта Усть-Луга за восемь месяцев вырос на двенадцать процентов.", shown:"Общий план порта: краны, контейнеровоз у причала.", onscreen:"", issues:[], explanation:"Кадр показывает порт с грузовой инфраструктурой, что соответствует подводке."},
+    {start:14, end:31, t:22.5, verdict:"mismatch", fragment:"Корреспондент ведёт прямое включение с причала номер три.", shown:"Офисное помещение, люди за компьютерами.", onscreen:"", issues:[], explanation:"В сценарии — включение с причала, на кадре офис. Возможно, перепутан исходник или сдвинут монтаж."},
+    {start:31, end:52, t:41.5, verdict:"partial", fragment:"Синхрон: Иванова Ирина, директор по логистике.", shown:"Женщина в каске говорит в камеру на фоне контейнеров.", onscreen:"Иванов Ирина / директор по логистике", issues:["В титре «Иванов», в сценарии «Иванова»."], explanation:"Сцена подходит к синхрону, но в плашке ошибка в фамилии."},
+  ],
+};
+
+const S = {url:null, fileName:"", duration:0, vw:0, vh:0, points:[], running:false, ctl:null, example:true};
+let sample = null, downloads = null, imagesOk = false;
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+function tc(t){ t = Math.max(0, t||0); const h = Math.floor(t/3600), m = Math.floor(t%3600/60), s = Math.floor(t%60), d = Math.floor(t*10%10); return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}.${d}`; }
+
+/* ---------- capabilities ---------- */
+(async () => {
+  try {
+    sample = await claude.use("sample");
+    if (sample) { const lim = await sample.limits().catch(() => null); imagesOk = !!(lim && lim.images); }
+  } catch { sample = null; }
+  try { downloads = await claude.use("downloads"); } catch { downloads = null; }
+  if (!sample) note("Обращение к Claude недоступно в этом просмотре. Откройте страницу на claude.ai, чтобы запустить проверку.", true);
+  else if (!imagesOk) note("Этот просмотр не может отправлять изображения Claude, поэтому сверка кадров недоступна. Откройте страницу в браузере на claude.ai.", true);
+  updateButtons();
+})();
+function note(t, bad){ E.note.textContent = t; E.note.className = "note" + (bad ? " bad" : ""); E.note.hidden = !t; }
+
+/* ---------- video ---------- */
+function once(el, ev){ return new Promise((res, rej) => { el.addEventListener(ev, res, {once:true}); el.addEventListener("error", () => rej(new Error("video")), {once:true}); }); }
+function seek(v, t){
+  return new Promise((res) => {
+    let done = false;
+    const fin = () => { if (done) return; done = true; v.removeEventListener("seeked", fin); clearTimeout(to); setTimeout(res, 20); };
+    const to = setTimeout(fin, 8000);
+    v.addEventListener("seeked", fin); v.currentTime = t;
+  });
+}
+async function realDuration(v){
+  if (Number.isFinite(v.duration) && v.duration > 0) return v.duration;
+  await new Promise((res) => {
+    const fin = () => { if (Number.isFinite(v.duration)) { v.removeEventListener("durationchange", fin); clearTimeout(to); res(); } };
+    const to = setTimeout(() => { v.removeEventListener("durationchange", fin); res(); }, 10000);
+    v.addEventListener("durationchange", fin); v.currentTime = 1e7;
+  });
+  const d = v.duration; await seek(v, 0);
+  if (!Number.isFinite(d) || d <= 0) throw new Error("duration");
+  return d;
+}
+function loadFile(file){
+  if (!file || S.running) return;
+  if (!file.type.startsWith("video/") && !/\.(mp4|m4v|mov|webm|mkv|ogv)$/i.test(file.name)) { note("Это не видеофайл. Выберите MP4, WebM или MOV.", true); return; }
+  if (S.url) URL.revokeObjectURL(S.url);
+  S.url = URL.createObjectURL(file); S.fileName = file.name;
+  E.preview.src = S.url;
+  E.preview.onloadedmetadata = async () => {
+    try { S.duration = await realDuration(E.preview); } catch { note("Не удалось определить длительность видео. Попробуйте MP4 (H.264).", true); return; }
+    S.vw = E.preview.videoWidth; S.vh = E.preview.videoHeight;
+    E.fname.textContent = file.name; E.fdur.textContent = `${tc(S.duration)} · ${S.vw}×${S.vh}`;
+    E.fileline.hidden = false; E.stage.hidden = false;
+    updateButtons();
+  };
+  E.preview.onerror = () => note("Браузер не смог открыть это видео. Попробуйте MP4 (H.264) или WebM.", true);
+}
+E.file.addEventListener("change", () => loadFile(E.file.files[0]));
+["dragenter","dragover"].forEach((ev) => E.drop.addEventListener(ev, (e) => { e.preventDefault(); E.drop.classList.add("over"); }));
+["dragleave","drop"].forEach((ev) => E.drop.addEventListener(ev, (e) => { e.preventDefault(); E.drop.classList.remove("over"); }));
+E.drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
+
+/* ---------- script split ---------- */
+function sentences(text){
+  return (text.replace(/\s+/g, " ").match(/[^.!?…]+[.!?…]*["»”)]?\s*/g) || []).map((s) => s.trim()).filter((s) => /[\p{L}\p{N}]/u.test(s));
+}
+// Делим сценарий на N кусков примерно равной длины и раздаём им время пропорционально числу символов
+function splitScript(text, n, duration){
+  const sent = sentences(text);
+  n = Math.min(n, sent.length);
+  if (!n) return [];
+  const total = sent.reduce((s, x) => s + x.length, 0), target = total/n;
+  const groups = []; let cur = [], len = 0;
+  sent.forEach((s, i) => {
+    cur.push(s); len += s.length;
+    const left = sent.length - i - 1, need = n - groups.length - 1;
+    if (need > 0 && (len >= target || left === need)) { groups.push(cur.join(" ")); cur = []; len = 0; }
+  });
+  if (cur.length) groups.push(cur.join(" "));
+  let acc = 0;
+  return groups.map((g) => {
+    const start = acc/total*duration; acc += g.length;
+    const end = acc/total*duration;
+    return {start, end, t:(start+end)/2, fragment:g, verdict:"pending"};
+  });
+}
+E.script.addEventListener("input", () => { E.scriptInfo.textContent = `Предложений: ${sentences(E.script.value).length}`; updateButtons(); });
+
+/* ---------- frames ---------- */
+async function grab(v){
+  const W = Math.min(1280, v.videoWidth), H = Math.round(W*v.videoHeight/v.videoWidth);
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  c.getContext("2d").drawImage(v, 0, 0, W, H);
+  const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.85));
+  const t = document.createElement("canvas"); t.width = 320; t.height = Math.round(320*H/W);
+  t.getContext("2d").drawImage(c, 0, 0, t.width, t.height);
+  return {blob, thumb:t.toDataURL("image/jpeg", 0.75)};
+}
+
+/* ---------- Claude ---------- */
+function prompt(p, i, all, script){
+  const prev = all[i-1] ? all[i-1].fragment : "(начало сюжета)", next = all[i+1] ? all[i+1].fragment : "(конец сюжета)";
+  return `Ты QA-редактор видеопродакшна. Сверяешь кадр из видеосюжета с фрагментом сценария, который по плану идёт в этот момент.
+
+Кадр (во вложении) взят на отметке ${tc(p.t)}. Оценочный диапазон фрагмента: ${tc(p.start)}–${tc(p.end)}. Привязка приблизительная: сценарий разбит на части пропорционально длине текста, поэтому кадр может относиться к соседнему фрагменту.
+
+Фрагмент сценария для этого момента:
+"""${p.fragment}"""
+
+Предыдущий фрагмент: """${prev}"""
+Следующий фрагмент: """${next}"""
+
+Полный сценарий (для сверки имён, должностей, цифр в титрах):
+"""${script.slice(0, 20000)}"""
+
+Задачи:
+1. Смысл: подходит ли изображение к фрагменту? Если кадр явно соответствует соседнему фрагменту, это "partial", а не "mismatch". "mismatch" — только когда картинка противоречит сценарию.
+2. Текст на кадре: перепиши титры, плашки, подписи дословно. Если они есть, сверь со сценарием имена, должности, названия, цифры и орфографию. Каждое расхождение — отдельный пункт text_issues.
+
+Ответь только JSON, на русском:
+{"verdict":"match"|"partial"|"mismatch","shown":"что на кадре, одно предложение","onscreen_text":"текст на кадре или пустая строка","text_issues":["..."],"explanation":"1–2 предложения, почему такой вердикт"}`;
+}
+const ERRORS = {
+  not_granted:"Доступ к Claude для этой страницы не разрешён.", sampling_disabled:"Claude недоступен для этого аккаунта.",
+  rate_limited:"Слишком много запросов или исчерпана квота. Попробуйте позже.", session_expired:"Сессия истекла: войдите на claude.ai заново.",
+  images_unavailable:"Этот просмотр не может отправлять изображения.", image_rejected:"Кадр не принят. Попробуйте другое видео.",
+  prompt_too_large:"Сценарий слишком длинный. Сократите текст.", refused:"Claude отказался оценивать этот кадр.",
+};
+const FATAL = new Set(["not_granted","sampling_disabled","rate_limited","session_expired","images_unavailable","not_declared","capability_disabled","capability_removed"]);
+
+async function run(){
+  if (!sample || !imagesOk || !S.url || S.running) return;
+  const script = E.script.value.trim();
+  const pts = splitScript(script, clamp(parseInt(E.points.value) || 8, 2, 30), S.duration);
+  if (!pts.length) { note("Вставьте текст сценария.", true); return; }
+  note("");
+  S.example = false; S.points = pts; S.running = true; S.ctl = new AbortController();
+  updateButtons(); render();
+  E.progress.hidden = false;
+  const v = document.createElement("video");
+  v.muted = true; v.playsInline = true; v.preload = "auto";
+  v.style.cssText = "position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none";
+  document.body.appendChild(v);
+  try {
+    v.src = S.url; await once(v, "loadeddata"); await realDuration(v);
+    setStatus("Вырезаем контрольные кадры…", 0);
+    for (const p of pts) { await seek(v, p.t); const g = await grab(v); p.blob = g.blob; p.thumb = g.thumb; }
+    render();
+    for (let i = 0; i < pts.length; i++) {
+      if (S.ctl.signal.aborted) break;
+      const p = pts[i];
+      setStatus(`Точка ${i+1} из ${pts.length} · ${tc(p.t)} · Claude смотрит кадр…`, i/pts.length);
+      try {
+        const r = await sample.json(prompt(p, i, pts, script), {images:[p.blob], modelTier:E.tier.value, signal:S.ctl.signal});
+        const issues = Array.isArray(r.text_issues) ? r.text_issues.map(String).filter(Boolean) : [];
+        let vd = r.verdict === "match" ? "ok" : r.verdict === "mismatch" ? "mismatch" : "partial";
+        if (vd === "ok" && issues.length) vd = "partial";
+        Object.assign(p, {verdict:vd, shown:String(r.shown || ""), onscreen:String(r.onscreen_text || ""), issues, explanation:String(r.explanation || "")});
+      } catch (e) {
+        if (e && e.code === "cancelled") break;
+        p.verdict = "error"; p.explanation = ERRORS[e && e.code] || "Не удалось получить ответ. Запустите проверку ещё раз.";
+        if (e && FATAL.has(e.code)) { note(p.explanation, true); break; }
+      }
+      render();
+    }
+    const done = pts.filter((p) => !["pending","error"].includes(p.verdict)).length;
+    setStatus(S.ctl.signal.aborted ? `Остановлено: проверено ${done} из ${pts.length}` : `Готово: проверено ${done} из ${pts.length}`, 1);
+  } catch (e) {
+    note("Не удалось обработать видео. Попробуйте MP4 (H.264).", true);
+  } finally {
+    v.removeAttribute("src"); v.load(); v.remove();
+    S.running = false; updateButtons(); render();
+  }
+}
+function setStatus(t, p){ E.status.textContent = t; if (typeof p === "number") E.barFill.style.width = (p*100).toFixed(1)+"%"; }
+function updateButtons(){
+  E.run.disabled = !sample || !imagesOk || !S.url || S.running || !sentences(E.script.value).length;
+  E.stop.hidden = !S.running;
+  E.exp.disabled = S.example || S.running || !downloads || !S.points.some((p) => ["ok","partial","mismatch"].includes(p.verdict));
+  E.exp.hidden = !downloads;
+  E.file.disabled = S.running;
+}
+E.run.addEventListener("click", run);
+E.stop.addEventListener("click", () => S.ctl && S.ctl.abort());
+
+/* ---------- render ---------- */
+function data(){ return S.example ? EXAMPLE : {fileName:S.fileName, duration:S.duration, points:S.points}; }
+function seekPreview(t){
+  if (S.example || !S.url) return;
+  E.preview.pause(); E.preview.currentTime = t;
+  E.stage.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"center"});
+}
+function render(){
+  const d = data(), D = d.duration || 1;
+  E.sampleTag.hidden = !S.example;
+  const c = {ok:0, partial:0, mismatch:0};
+  d.points.forEach((p) => { if (p.verdict in c) c[p.verdict]++; });
+  E.summary.innerHTML =
+    `<div class="stat mismatch"><b>${c.mismatch}</b><span>несоответствий</span></div>` +
+    `<div class="stat partial"><b>${c.partial}</b><span>проверить</span></div>` +
+    `<div class="stat ok"><b>${c.ok}</b><span>соответствует</span></div>`;
+  E.track.innerHTML = d.points.map((p, i) =>
+    `<button class="range ${p.verdict}" data-i="${i}" style="left:${p.start/D*100}%;width:${(p.end-p.start)/D*100}%" title="${esc(tc(p.start)+" – "+tc(p.end)+" · "+V[p.verdict].label)}" aria-label="${esc(tc(p.t)+", "+V[p.verdict].label)}"><i style="left:${(p.t-p.start)/Math.max(0.001,p.end-p.start)*100}%"></i></button>`).join("");
+  E.ticks.innerHTML = [0,.25,.5,.75,1].map((f) => `<span>${tc(D*f).slice(0,8)}</span>`).join("");
+  E.list.innerHTML = d.points.length ? d.points.map((p, i) => `
+    <article class="card ${p.verdict}" id="pt-${i}">
+      <div class="card-side">
+        ${p.thumb ? `<img class="thumb" src="${p.thumb}" alt="Кадр ${tc(p.t)}" data-t="${p.t}">` : `<div class="thumb fake">${S.example ? "кадр примера" : "кадр ещё не вырезан"}</div>`}
+        <button class="tc" data-t="${p.t}">кадр ${tc(p.t)}</button>
+        <span class="status mono">фрагмент ≈ ${tc(p.start)} – ${tc(p.end)}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-top"><span class="pill ${p.verdict}">${V[p.verdict].label}</span></div>
+        <div><p class="lbl">По сценарию</p><div class="frag">${esc(p.fragment)}</div></div>
+        ${p.shown ? `<div><p class="lbl">На кадре</p><div class="said">${esc(p.shown)}</div></div>` : ""}
+        ${p.onscreen ? `<div><p class="lbl">Текст на кадре</p><div class="said mono">${esc(p.onscreen)}</div></div>` : ""}
+        ${p.issues && p.issues.length ? `<ul class="issues">${p.issues.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        ${p.explanation ? `<div class="frag">${esc(p.explanation)}</div>` : ""}
+      </div>
+    </article>`).join("") : `<div class="empty">Нет контрольных точек.</div>`;
+  updateButtons();
+}
+E.track.addEventListener("click", (e) => { const b = e.target.closest(".range"); if (!b) return; const p = data().points[+b.dataset.i]; seekPreview(p.t); const el = document.getElementById("pt-"+b.dataset.i); if (el) el.scrollIntoView({block:"nearest"}); });
+E.list.addEventListener("click", (e) => { const t = e.target.closest("[data-t]"); if (t) seekPreview(parseFloat(t.dataset.t)); });
+
+/* ---------- export ---------- */
+async function exportMd(){
+  const d = data(), c = {ok:0, partial:0, mismatch:0};
+  d.points.forEach((p) => { if (p.verdict in c) c[p.verdict]++; });
+  const L = [`# Отчёт СТОП-КАДР — ${d.fileName}`, "",
+    `- Дата проверки: ${new Date().toLocaleString("ru-RU")}`,
+    `- Длительность видео: ${tc(d.duration)} · контрольных точек: ${d.points.length}`,
+    "", `**Итого:** несоответствий — ${c.mismatch}, проверить — ${c.partial}, соответствует — ${c.ok}.`, "",
+    "> Таймкоды оценочные (сценарий разбит пропорционально длине текста). Вердикт — суждение модели по одному кадру, это кандидаты на ручную проверку.", ""];
+  d.points.forEach((p, i) => {
+    L.push(`## ${i+1}. Кадр ${tc(p.t)} (фрагмент ≈ ${tc(p.start)} – ${tc(p.end)}) · ${V[p.verdict].md}`, "");
+    L.push(`- **По сценарию:** «${p.fragment}»`);
+    if (p.shown) L.push(`- **На кадре:** ${p.shown}`);
+    if (p.onscreen) L.push(`- **Текст на кадре:** «${p.onscreen}»`);
+    if (p.issues && p.issues.length) L.push(`- **Ошибки в тексте:** ${p.issues.join("; ")}`);
+    if (p.explanation) L.push(`- **Пояснение:** ${p.explanation}`);
+    L.push("");
+  });
+  try {
+    await downloads.save({filename:`${(d.fileName || "video").replace(/\.[^.]+$/, "")} — отчёт СТОП-КАДР.md`, data:L.join("\n")});
+  } catch (e) {
+    if (e && e.code !== "declined") note(e.code === "rate_limited" ? "Окно сохранения уже открыто." : "Скачивание недоступно в этом просмотре.", e.code !== "rate_limited");
+  }
+}
+E.exp.addEventListener("click", exportMd);
+
+render();
+})();
+</script>

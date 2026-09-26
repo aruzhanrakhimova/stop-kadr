@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>СТОП-КАДР · OCR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@600&display=swap">
+<style>
+:root{
+  --bg:#EEF1F0; --surface:#FFFFFF; --sunk:#E4E8E7; --ink:#1A2026; --muted:#5A6570; --line:#D3D9D8;
+  --accent:#2750C8; --accent-ink:#FFFFFF; --accent-soft:#E2E8FA;
+  --ok:#2B7A4D; --ok-soft:#DCEEE3; --warn:#A0640C; --warn-soft:#F6E8CC; --bad:#B6372A; --bad-soft:#F5DCD8;
+  --tl:#1C232A; --tl-ink:#C9D1D8; --roi:#FFC53D;
+  --r:6px;
+  --f-display:"Unbounded","Onest",system-ui,sans-serif;
+  --f-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#11161B; --surface:#192027; --sunk:#222A32; --ink:#E3E7EA; --muted:#97A2AC; --line:#2D3741;
+    --accent:#809DF3; --accent-ink:#0D1320; --accent-soft:#212E52;
+    --ok:#6CC592; --ok-soft:#1A3325; --warn:#E2AC54; --warn-soft:#382B13; --bad:#EF8272; --bad-soft:#43211C;
+    --tl:#0A0E12; --tl-ink:#A9B3BC;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#11161B; --surface:#192027; --sunk:#222A32; --ink:#E3E7EA; --muted:#97A2AC; --line:#2D3741;
+  --accent:#809DF3; --accent-ink:#0D1320; --accent-soft:#212E52;
+  --ok:#6CC592; --ok-soft:#1A3325; --warn:#E2AC54; --warn-soft:#382B13; --bad:#EF8272; --bad-soft:#43211C;
+  --tl:#0A0E12; --tl-ink:#A9B3BC;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding:0 16px 48px}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+header.top{max-width:1360px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;padding-block:22px 18px;border-bottom:1px solid var(--line)}
+.brand{font-family:var(--f-display);font-weight:600;font-size:22px;letter-spacing:.02em;margin:0;display:flex;align-items:center;gap:10px}
+.brand .rec{width:12px;height:12px;border-radius:50%;background:var(--bad);display:inline-block}
+.brand small{font-family:var(--f-mono);font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.08em}
+.tagline{color:var(--muted);margin:0;max-width:62ch}
+.local-badge{margin-left:auto;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:3px 10px}
+
+main{max-width:1360px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:24px;padding-top:22px}
+@media (min-width:1040px){main{grid-template-columns:minmax(0,460px) minmax(0,1fr);align-items:start}}
+
+.panel{display:grid;gap:18px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px}
+.step h2{margin:0;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px;align-items:center}
+.step h2 .n{font-family:var(--f-mono);color:var(--accent)}
+.hint{margin:0;color:var(--muted);font-size:13px}
+
+.drop{border:1.5px dashed var(--line);border-radius:var(--r);padding:22px 16px;text-align:center;cursor:pointer;background:var(--sunk);display:grid;gap:4px}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{font-weight:600}
+.drop input{display:none}
+.fileline{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.fileline b{color:var(--ink);font-weight:500;word-break:break-all}
+
+.stage{position:relative;width:100%;max-width:100%;background:#000;border-radius:4px;overflow:hidden}
+.stage video{display:block;width:100%;height:100%}
+.overlay{position:absolute;inset:0;pointer-events:none}
+.overlay.drawing{pointer-events:auto;cursor:crosshair}
+.roi{position:absolute;border:2px solid var(--roi);box-shadow:0 0 0 9999px rgba(0,0,0,.45);pointer-events:none}
+.roi.full{border-color:transparent;box-shadow:none}
+.roi span{position:absolute;left:0;top:0;transform:translateY(-100%);background:var(--roi);color:#1A1A1A;font:600 11px var(--f-mono);padding:1px 5px}
+.roi.full span{display:none}
+.drawtip{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:rgba(0,0,0,.72);color:#fff;font-size:12px;padding:4px 10px;border-radius:99px;pointer-events:none}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 12px;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+textarea{width:100%;min-height:190px;resize:vertical;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:10px 12px;line-height:1.45}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 14px}
+.field{display:grid;gap:4px;font-size:13px}
+.field span{color:var(--muted)}
+.field input,.field select{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:7px 9px;width:100%}
+details.more summary{cursor:pointer;font-size:13px;color:var(--accent)}
+details.more[open] summary{margin-bottom:10px}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:8px 14px;cursor:pointer;font-weight:500}
+.btn:hover:not(:disabled){border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);padding:11px 18px;font-weight:600}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);border-color:var(--accent)}
+.btn.small{padding:5px 10px;font-size:13px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.progress{display:grid;gap:6px}
+.bar{height:6px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.status{font-size:13px;color:var(--muted)}
+.error{background:var(--bad-soft);color:var(--bad);border-radius:var(--r);padding:10px 12px;font-size:14px}
+
+/* report */
+.report{display:grid;gap:16px;min-width:0}
+.report-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.report-head h2{margin:0;font-family:var(--f-display);font-size:18px;font-weight:600}
+.summary{display:flex;flex-wrap:wrap;gap:8px}
+.stat{display:flex;align-items:baseline;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:8px 14px}
+.stat b{font-family:var(--f-mono);font-size:20px;font-weight:600}
+.stat.ok b{color:var(--ok)} .stat.partial b{color:var(--warn)} .stat.miss b{color:var(--bad)}
+.stat span{font-size:13px;color:var(--muted)}
+.meta{font-size:13px;color:var(--muted)}
+
+.timeline{background:var(--tl);border-radius:var(--r);padding:12px 12px 8px;display:grid;gap:6px}
+.track{position:relative;height:34px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.seg{position:absolute;top:0;bottom:0;min-width:3px;border:0;padding:0;cursor:pointer;opacity:.92}
+.seg:hover{opacity:1;outline:2px solid #fff;outline-offset:-2px}
+.seg.ok{background:var(--ok)} .seg.partial{background:var(--warn)} .seg.miss{background:var(--bad)}
+.playhead{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;pointer-events:none;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+.ticks{display:flex;justify-content:space-between;font:11px var(--f-mono);color:var(--tl-ink)}
+
+.filters{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:13px}
+.filters label{display:flex;gap:6px;align-items:center}
+.filters input[type=number]{width:62px;border:1px solid var(--line);border-radius:4px;background:var(--surface);padding:3px 6px}
+
+.list{display:grid;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:var(--r);display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:14px;padding:12px}
+.card.ok{border-left-color:var(--ok)} .card.partial{border-left-color:var(--warn)} .card.miss{border-left-color:var(--bad)}
+@media (max-width:620px){.card{grid-template-columns:minmax(0,1fr)}}
+.thumb{width:100%;border-radius:4px;display:block;background:var(--sunk);cursor:pointer}
+.card-side{display:grid;gap:6px;align-content:start}
+.tc{border:0;background:none;padding:0;cursor:pointer;color:var(--accent);font-family:var(--f-mono);font-size:13px;font-weight:600;text-align:left}
+.tc:hover{text-decoration:underline}
+.card-body{display:grid;gap:8px;min-width:0}
+.card-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{font-size:12px;font-weight:600;border-radius:99px;padding:2px 10px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.partial{background:var(--warn-soft);color:var(--warn)} .pill.miss{background:var(--bad-soft);color:var(--bad)}
+.metric{font-size:12px;color:var(--muted)}
+.metric b{font-family:var(--f-mono);color:var(--ink);font-weight:600}
+.metric.low b{color:var(--bad)}
+.lbl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 2px}
+.ocr{font-size:15px;font-weight:500;overflow-wrap:anywhere}
+.w-fuzzy{text-decoration:underline wavy var(--warn);text-underline-offset:3px;background:var(--warn-soft);border-radius:2px}
+.w-miss{text-decoration:underline wavy var(--bad);text-underline-offset:3px;background:var(--bad-soft);border-radius:2px}
+.frag{font-size:14px;color:var(--muted);overflow-wrap:anywhere}
+.frag mark{background:var(--accent-soft);color:var(--ink);border-radius:2px;padding:0 1px}
+.diffs{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.diffs li{font-size:12px;border:1px solid var(--line);border-radius:4px;padding:2px 7px;font-family:var(--f-mono)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:28px 20px;color:var(--muted);display:grid;gap:10px}
+.empty h3{margin:0;color:var(--ink);font-size:16px}
+.empty ol{margin:0;padding-left:20px;display:grid;gap:4px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1 class="brand"><span class="rec" aria-hidden="true"></span>СТОП-КАДР <small>· OCR</small></h1>
+  <p class="tagline">Сверка титров и плашек на экране с текстом сценария. Распознавание идёт локально в браузере, видео никуда не отправляется.</p>
+  <span class="local-badge">без ИИ · Tesseract.js</span>
+</header>
+
+<main>
+  <section class="panel" aria-label="Настройка проверки">
+
+    <div class="step">
+      <h2><span class="n">1</span> Видео</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept="video/*">
+        <strong>Перетащите видеофайл сюда</strong>
+        <span class="hint">или нажмите, чтобы выбрать (MP4, WebM, MOV — всё, что играет браузер)</span>
+      </label>
+      <div class="fileline" id="fileline" hidden><span>Файл: <b id="fname"></b></span><span class="mono" id="fdur"></span></div>
+    </div>
+
+    <div class="step" id="roiStep" hidden>
+      <h2><span class="n">2</span> Область титров</h2>
+      <div class="stage" id="stage">
+        <video id="preview" controls playsinline preload="metadata"></video>
+        <div class="overlay" id="overlay">
+          <div class="roi full" id="roi"><span>ОБЛАСТЬ OCR</span></div>
+          <div class="drawtip" id="drawtip" hidden>Протяните рамку по области титров</div>
+        </div>
+      </div>
+      <div class="chips" id="presets">
+        <button class="chip" data-p="full" aria-pressed="true">Весь кадр</button>
+        <button class="chip" data-p="lower3" aria-pressed="false">Нижняя треть</button>
+        <button class="chip" data-p="lower4" aria-pressed="false">Нижняя четверть</button>
+        <button class="chip" data-p="top" aria-pressed="false">Верхняя полоса</button>
+        <button class="chip" data-p="draw" aria-pressed="false">Нарисовать свою…</button>
+      </div>
+      <p class="hint">Узкая область (например, нижняя плашка) ускоряет распознавание и убирает мусор из фона.</p>
+    </div>
+
+    <div class="step">
+      <h2><span class="n">3</span> Сценарий</h2>
+      <textarea id="script" spellcheck="false" placeholder="Вставьте полный текст сценария: подводки, синхроны, титры, подписи к плашкам. Таймкоды не нужны."></textarea>
+      <p class="hint" id="scriptInfo">Слов в сценарии: 0</p>
+    </div>
+
+    <div class="step">
+      <h2><span class="n">4</span> Параметры</h2>
+      <div class="grid2">
+        <label class="field"><span>Шаг выборки кадров, сек</span><input type="number" id="interval" min="0.25" max="30" step="0.25" value="2"></label>
+        <label class="field"><span>Язык титров</span>
+          <select id="lang">
+            <option value="rus+eng" selected>Русский + английский</option>
+            <option value="rus">Русский</option>
+            <option value="eng">Английский</option>
+            <option value="kaz+rus">Казахский + русский</option>
+          </select>
+        </label>
+      </div>
+      <details class="more">
+        <summary>Точная настройка</summary>
+        <div class="grid2">
+          <label class="field"><span>Порог «совпадает», %</span><input type="number" id="hi" min="1" max="100" value="60"></label>
+          <label class="field"><span>Порог «неточное», %</span><input type="number" id="lo" min="0" max="99" value="30"></label>
+          <label class="field"><span>Отбрасывать слова с уверенностью OCR ниже, %</span><input type="number" id="minWord" min="0" max="95" value="40"></label>
+          <label class="field"><span>Пословные расхождения считать браком при уверенности от, %</span><input type="number" id="strict" min="0" max="100" value="75"></label>
+          <label class="field"><span>Предобработка кадра</span>
+            <select id="pre">
+              <option value="auto" selected>Авто (контраст + инверсия тёмного фона)</option>
+              <option value="contrast">Только контраст</option>
+              <option value="invert">Всегда инвертировать</option>
+              <option value="none">Без обработки</option>
+            </select>
+          </label>
+        </div>
+      </details>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="run" disabled>Проверить видео</button>
+      <button class="btn" id="stop" hidden>Остановить</button>
+      <button class="btn" id="rematch" disabled title="Сверить уже распознанные кадры с изменённым сценарием без повторного OCR">Пересверить со сценарием</button>
+    </div>
+    <div class="progress" id="progress" hidden>
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="status mono" id="status"></div>
+    </div>
+    <div class="error" id="error" hidden></div>
+  </section>
+
+  <section class="report" aria-label="Отчёт">
+    <div class="report-head">
+      <h2>Отчёт</h2>
+      <div class="actions">
+        <button class="btn small" id="expMd" disabled>Экспорт .md</button>
+        <button class="btn small" id="expCsv" disabled>Экспорт .csv</button>
+      </div>
+    </div>
+
+    <div class="empty" id="empty">
+      <h3>Здесь появится список моментов с таймкодами</h3>
+      <ol>
+        <li>Загрузите ролик и вставьте текст сценария.</li>
+        <li>При необходимости задайте область, где висят титры.</li>
+        <li>Нажмите «Проверить видео». Первый запуск скачивает OCR-движок и языковые пакеты (≈ 15–25 МБ), дальше они берутся из кэша браузера.</li>
+      </ol>
+      <div class="legend">
+        <span><i style="background:var(--ok)"></i>совпадает — схожесть ≥ порога, пословных расхождений нет</span>
+        <span><i style="background:var(--warn)"></i>неточное совпадение — проверить глазами</span>
+        <span><i style="background:var(--bad)"></i>не найдено в сценарии</span>
+      </div>
+    </div>
+
+    <div id="results" hidden>
+      <div class="report" style="gap:14px">
+        <div class="summary" id="summary"></div>
+        <div class="meta" id="meta"></div>
+        <div class="timeline">
+          <div class="track" id="track"><div class="playhead" id="playhead"></div></div>
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <div class="filters">
+          <label><input type="radio" name="show" value="all" checked> Все</label>
+          <label><input type="radio" name="show" value="problems"> Только проблемные</label>
+          <label><input type="checkbox" id="hideLow"> Скрыть кадры с уверенностью OCR ниже <input type="number" id="lowConf" min="0" max="100" value="50">%</label>
+        </div>
+        <div class="list" id="list"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = (s) => document.querySelector(s);
+const E = {
+  drop:$("#drop"), file:$("#file"), fileline:$("#fileline"), fname:$("#fname"), fdur:$("#fdur"),
+  roiStep:$("#roiStep"), stage:$("#stage"), preview:$("#preview"), overlay:$("#overlay"), roi:$("#roi"), drawtip:$("#drawtip"), presets:$("#presets"),
+  script:$("#script"), scriptInfo:$("#scriptInfo"),
+  interval:$("#interval"), lang:$("#lang"), hi:$("#hi"), lo:$("#lo"), minWord:$("#minWord"), strict:$("#strict"), pre:$("#pre"),
+  run:$("#run"), stop:$("#stop"), rematch:$("#rematch"), progress:$("#progress"), barFill:$("#barFill"), status:$("#status"), error:$("#error"),
+  expMd:$("#expMd"), expCsv:$("#expCsv"), empty:$("#empty"), results:$("#results"), summary:$("#summary"), meta:$("#meta"),
+  track:$("#track"), playhead:$("#playhead"), ticks:$("#ticks"), list:$("#list"), hideLow:$("#hideLow"), lowConf:$("#lowConf"),
+};
+
+const PRESETS = {
+  full:   {x:0, y:0,    w:1, h:1},
+  lower3: {x:0, y:2/3,  w:1, h:1/3},
+  lower4: {x:0, y:0.75, w:1, h:0.25},
+  top:    {x:0, y:0,    w:1, h:0.22},
+};
+const VERDICT = {
+  ok:      {label:"Совпадает",               md:"СОВПАДАЕТ"},
+  partial: {label:"Неточное совпадение",     md:"НЕТОЧНОЕ СОВПАДЕНИЕ"},
+  miss:    {label:"Не найдено в сценарии",   md:"НЕ НАЙДЕНО В СЦЕНАРИИ"},
+};
+
+const S = {
+  url:null, fileName:"", duration:0, vw:0, vh:0,
+  region:{...PRESETS.full}, regionName:"full", drawing:false,
+  samples:[], segments:[], interval:2, runInfo:null,
+  running:false, cancel:false, worker:null, workerKey:"",
+  compiled:null,
+};
+
+/* ---------- utils ---------- */
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const num = (el, d) => { const v = parseFloat(el.value); return Number.isFinite(v) ? v : d; };
+function tc(t){
+  t = Math.max(0, t || 0);
+  const h = Math.floor(t/3600), m = Math.floor(t%3600/60), s = Math.floor(t%60), d = Math.floor((t*10)%10);
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}.${d}`;
+}
+function dur(sec){ sec = Math.round(sec); const m = Math.floor(sec/60), s = sec%60; return m ? `${m} мин ${s} с` : `${s} с`; }
+const isFull = (r) => r.x <= 0.001 && r.y <= 0.001 && r.w >= 0.999 && r.h >= 0.999;
+
+// Латинские буквы, которые OCR путает с кириллицей
+const LAT2CYR = {a:"а",b:"в",c:"с",e:"е",h:"н",k:"к",m:"м",o:"о",p:"р",t:"т",x:"х",y:"у"};
+function norm(w){
+  let s = String(w).toLowerCase().replace(/ё/g,"е").replace(/[^\p{L}\p{N}]+/gu,"");
+  if (/[а-я]/.test(s) && /[a-z]/.test(s)) s = s.replace(/[abcehkmoptxy]/g, (c) => LAT2CYR[c]);
+  return s;
+}
+function bigrams(s){
+  const m = new Map();
+  if (s.length < 2) { m.set(s, 1); return m; }
+  for (let i = 0; i < s.length-1; i++) { const g = s.slice(i,i+2); m.set(g, (m.get(g)||0)+1); }
+  return m;
+}
+function dice(a, b){
+  if (a === b) return 1;
+  const A = bigrams(a), B = bigrams(b);
+  let inter = 0, na = 0, nb = 0;
+  for (const v of A.values()) na += v;
+  for (const v of B.values()) nb += v;
+  for (const [g,v] of A) if (B.has(g)) inter += Math.min(v, B.get(g));
+  return na+nb ? 2*inter/(na+nb) : 0;
+}
+// Похожесть двух слов: точное совпадение = 1, для длинных слов без цифр — нечёткое
+function wordSim(a, b){
+  if (a === b) return 1;
+  if (/\d/.test(a) || /\d/.test(b)) return 0;          // цифры сверяем строго
+  if (a.length < 3 || b.length < 3) return 0;
+  const d = dice(a, b);
+  return d >= 0.7 ? d : 0;
+}
+
+/* ---------- video loading ---------- */
+function loadFile(file){
+  if (!file) return;
+  if (S.running) return;
+  if (!file.type.startsWith("video/") && !/\.(mp4|m4v|mov|webm|mkv|ogv|avi)$/i.test(file.name)) { showError("Это не видеофайл. Выберите MP4, WebM или MOV."); return; }
+  hideError();
+  if (S.url) URL.revokeObjectURL(S.url);
+  S.url = URL.createObjectURL(file);
+  S.fileName = file.name;
+  S.samples = []; S.segments = []; S.runInfo = null;
+  E.preview.src = S.url;
+  E.preview.onloadedmetadata = async () => {
+    try { S.duration = await realDuration(E.preview); }
+    catch { showError("Не удалось определить длительность видео. Попробуйте перекодировать файл в MP4."); return; } S.vw = E.preview.videoWidth; S.vh = E.preview.videoHeight;
+    E.stage.style.aspectRatio = `${S.vw} / ${S.vh}`;
+    E.fname.textContent = file.name;
+    E.fdur.textContent = `${tc(S.duration)} · ${S.vw}×${S.vh}`;
+    E.fileline.hidden = false; E.roiStep.hidden = false;
+    updateButtons(); render();
+  };
+  E.preview.onerror = () => showError("Браузер не смог открыть это видео. Попробуйте MP4 (H.264) или WebM.");
+}
+E.file.addEventListener("change", () => loadFile(E.file.files[0]));
+["dragenter","dragover"].forEach((ev) => E.drop.addEventListener(ev, (e) => { e.preventDefault(); E.drop.classList.add("over"); }));
+["dragleave","drop"].forEach((ev) => E.drop.addEventListener(ev, (e) => { e.preventDefault(); E.drop.classList.remove("over"); }));
+E.drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
+
+/* ---------- region of interest ---------- */
+function drawRoi(){
+  const r = S.region;
+  E.roi.style.left = r.x*100+"%"; E.roi.style.top = r.y*100+"%";
+  E.roi.style.width = r.w*100+"%"; E.roi.style.height = r.h*100+"%";
+  E.roi.classList.toggle("full", isFull(r));
+}
+function setPreset(name){
+  S.drawing = name === "draw";
+  E.overlay.classList.toggle("drawing", S.drawing);
+  E.drawtip.hidden = !S.drawing;
+  if (!S.drawing) { S.region = {...PRESETS[name]}; S.regionName = name; }
+  for (const b of E.presets.querySelectorAll(".chip")) b.setAttribute("aria-pressed", String(b.dataset.p === (S.drawing ? "draw" : S.regionName)));
+  drawRoi();
+}
+E.presets.addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b && !S.running) setPreset(b.dataset.p); });
+let dragStart = null;
+function ptr(e){ const b = E.overlay.getBoundingClientRect(); return {x:clamp((e.clientX-b.left)/b.width,0,1), y:clamp((e.clientY-b.top)/b.height,0,1)}; }
+E.overlay.addEventListener("pointerdown", (e) => {
+  if (!S.drawing) return;
+  dragStart = ptr(e); E.overlay.setPointerCapture(e.pointerId); E.drawtip.hidden = true;
+});
+E.overlay.addEventListener("pointermove", (e) => {
+  if (!dragStart) return;
+  const p = ptr(e);
+  S.region = {x:Math.min(dragStart.x,p.x), y:Math.min(dragStart.y,p.y), w:Math.abs(p.x-dragStart.x), h:Math.abs(p.y-dragStart.y)};
+  drawRoi();
+});
+E.overlay.addEventListener("pointerup", () => {
+  if (!dragStart) return;
+  dragStart = null;
+  if (S.region.w < 0.03 || S.region.h < 0.03) { setPreset(S.regionName === "custom" ? "full" : S.regionName); return; }
+  S.regionName = "custom"; S.drawing = false;
+  E.overlay.classList.remove("drawing");
+  for (const b of E.presets.querySelectorAll(".chip")) b.setAttribute("aria-pressed", String(b.dataset.p === "draw"));
+  drawRoi();
+});
+drawRoi();
+
+/* ---------- script ---------- */
+function compileScript(text){
+  if (S.compiled && S.compiled.text === text) return S.compiled;
+  const toks = [];
+  for (const m of text.matchAll(/\S+/g)) { const n = norm(m[0]); if (n) toks.push({raw:m[0], n}); }
+  const ids = new Map(), uniq = [];
+  const id = new Int32Array(toks.length);
+  toks.forEach((t,i) => { if (!ids.has(t.n)) { ids.set(t.n, uniq.length); uniq.push(t.n); } id[i] = ids.get(t.n); });
+  return (S.compiled = {text, toks, id, uniq});
+}
+E.script.addEventListener("input", () => {
+  const n = compileScript(E.script.value).toks.length;
+  E.scriptInfo.textContent = `Слов в сценарии: ${n}` + (S.samples.length ? " · после правки нажмите «Пересверить со сценарием»" : "");
+});
+
+/* ---------- frame capture ---------- */
+const cropC = document.createElement("canvas");
+const cctx = cropC.getContext("2d", {willReadFrequently:true});
+function grabCrop(v, r, mode){
+  const vw = v.videoWidth, vh = v.videoHeight;
+  const sx = Math.round(r.x*vw), sy = Math.round(r.y*vh);
+  const sw = Math.max(8, Math.round(r.w*vw)), sh = Math.max(8, Math.round(r.h*vh));
+  const scale = clamp(1600/sw, 1, 3);                 // мелкий текст увеличиваем — Tesseract любит ~30px на строку
+  cropC.width = Math.round(sw*scale); cropC.height = Math.round(sh*scale);
+  cctx.imageSmoothingEnabled = true; cctx.imageSmoothingQuality = "high";
+  cctx.drawImage(v, sx, sy, sw, sh, 0, 0, cropC.width, cropC.height);
+  if (mode !== "none") preprocess(mode);
+  return cropC;
+}
+function preprocess(mode){
+  const W = cropC.width, H = cropC.height, img = cctx.getImageData(0,0,W,H), d = img.data, N = W*H;
+  const g = new Uint8ClampedArray(N), hist = new Uint32Array(256);
+  let sum = 0;
+  for (let p = 0, q = 0; q < N; p += 4, q++) { const y = (d[p]*299 + d[p+1]*587 + d[p+2]*114)/1000 | 0; g[q] = y; hist[y]++; sum += y; }
+  let lo = 0, hi = 255, acc = 0;
+  for (let k = 0; k < 256; k++) { acc += hist[k]; if (acc >= N*0.01) { lo = k; break; } }
+  acc = 0;
+  for (let k = 255; k >= 0; k--) { acc += hist[k]; if (acc >= N*0.01) { hi = k; break; } }
+  const invert = mode === "invert" || (mode === "auto" && sum/N < 120);
+  const span = Math.max(1, hi-lo);
+  for (let p = 0, q = 0; q < N; p += 4, q++) {
+    let y = (g[q]-lo)*255/span; y = y < 0 ? 0 : y > 255 ? 255 : y;
+    if (invert) y = 255-y;
+    d[p] = d[p+1] = d[p+2] = y;
+  }
+  cctx.putImageData(img, 0, 0);
+}
+function thumbnail(v, r){
+  const c = document.createElement("canvas"), W = 320, H = Math.round(320*v.videoHeight/v.videoWidth);
+  c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  x.drawImage(v, 0, 0, W, H);
+  if (!isFull(r)) { x.strokeStyle = "#FFC53D"; x.lineWidth = 2; x.strokeRect(r.x*W+1, r.y*H+1, r.w*W-2, r.h*H-2); }
+  return c.toDataURL("image/jpeg", 0.72);
+}
+// WebM из записи экрана/MediaRecorder часто без длительности в заголовке: узнаём её, перемотав в конец
+async function realDuration(v){
+  if (Number.isFinite(v.duration) && v.duration > 0) return v.duration;
+  await new Promise((res) => {
+    const fin = () => { if (Number.isFinite(v.duration)) { v.removeEventListener("durationchange", fin); clearTimeout(to); res(); } };
+    const to = setTimeout(() => { v.removeEventListener("durationchange", fin); res(); }, 10000);
+    v.addEventListener("durationchange", fin);
+    v.currentTime = 1e7;
+  });
+  const d = v.duration;
+  await seek(v, 0);
+  if (!Number.isFinite(d) || d <= 0) throw new Error("не удалось определить длительность видео");
+  return d;
+}
+function once(el, ev){ return new Promise((res, rej) => { el.addEventListener(ev, res, {once:true}); el.addEventListener("error", () => rej(new Error("video")), {once:true}); }); }
+function seek(v, t){
+  return new Promise((res) => {
+    let done = false;
+    const fin = () => { if (done) return; done = true; v.removeEventListener("seeked", fin); clearTimeout(to); setTimeout(res, 20); };  // не rAF: он замирает в фоновой вкладке
+    const to = setTimeout(fin, 8000);
+    v.addEventListener("seeked", fin);
+    v.currentTime = t;
+  });
+}
+
+/* ---------- OCR ---------- */
+async function ensureWorker(lang, psm){
+  if (!S.worker || S.workerKey !== lang) {
+    if (S.worker) { try { await S.worker.terminate(); } catch {} S.worker = null; }
+    setStatus("Загрузка OCR-движка и языковых пакетов…", 0);
+    S.worker = await Tesseract.createWorker(lang, 1, {
+      logger: (m) => { if (m && typeof m.progress === "number" && /load|initializ/i.test(m.status || "")) setStatus(`Подготовка OCR: ${m.status} ${Math.round(m.progress*100)}%`, m.progress); },
+    });
+    S.workerKey = lang;
+  }
+  await S.worker.setParameters({tessedit_pageseg_mode:String(psm), preserve_interword_spaces:"1"});
+  return S.worker;
+}
+function ocrLines(data){
+  if (data.lines && data.lines.length) return data.lines;
+  const out = [];
+  for (const b of data.blocks || []) for (const p of b.paragraphs || []) for (const l of p.lines || []) out.push(l);
+  return out;
+}
+function parseOcr(data, minConf){
+  const lines = [], words = [];
+  const src = ocrLines(data);
+  if (src.length) {
+    for (const l of src) {
+      const ws = (l.words || []).filter((w) => w.confidence >= minConf && /[\p{L}\p{N}]/u.test(w.text));
+      if (!ws.length) continue;
+      lines.push(ws.map((w) => w.text.trim()).join(" "));
+      for (const w of ws) { const n = norm(w.text); if (n) words.push({raw:w.text.trim(), n, conf:w.confidence}); }
+    }
+  } else if ((data.text || "").trim() && data.confidence >= minConf) {
+    for (const line of data.text.split(/\n+/)) {
+      const t = line.trim(); if (!t) continue;
+      lines.push(t);
+      for (const raw of t.split(/\s+/)) { const n = norm(raw); if (n) words.push({raw, n, conf:data.confidence}); }
+    }
+  }
+  const letters = words.reduce((s,w) => s + (w.n.match(/\p{L}/gu) || []).length, 0);
+  if (letters < 3 && !words.some((w) => /\d{2,}/.test(w.n))) return {text:"", words:[], conf:0};
+  let cw = 0, cs = 0;
+  for (const w of words) { cw += w.n.length; cs += w.conf*w.n.length; }
+  return {text:lines.join("\n"), words, conf:cw ? cs/cw : 0};
+}
+
+/* ---------- segmentation & matching ---------- */
+function segmentize(samples, interval, total){
+  const segs = []; let cur = null;
+  for (const s of samples) {
+    if (!s.words.length) { cur = null; continue; }
+    const key = s.words.map((w) => w.n).join(" ");
+    if (cur && dice(cur.key, key) >= 0.8 && s.t - cur.lastT <= interval*1.5) {
+      cur.lastT = s.t; cur.frames++;
+      if (s.conf > cur.best.conf) { cur.best = s; cur.key = key; }
+    } else {
+      cur = {start:s.t, lastT:s.t, best:s, key, frames:1};
+      segs.push(cur);
+    }
+  }
+  return segs.map((c) => ({start:c.start, end:Math.min(total, c.lastT + interval), frames:c.frames, sample:c.best, match:null, verdict:"miss"}));
+}
+function matchWords(words, sc){
+  const n = words.length, T = sc.toks.length;
+  const none = {score:0, i:-1, m:0, pairs:new Array(n).fill(null)};
+  if (!n || !T) return none;
+  const sims = words.map((w) => { const m = new Map(); for (let k = 0; k < sc.uniq.length; k++) { const s = wordSim(w.n, sc.uniq[k]); if (s > 0) m.set(k, s); } return m; });
+  const pref = new Int32Array(T+1);
+  for (let j = 0; j < T; j++) { let h = 0; for (const m of sims) if (m.has(sc.id[j])) { h = 1; break; } pref[j+1] = pref[j] + h; }
+  let best = null;
+  const mMin = Math.max(1, n-2), mMax = Math.min(T, n+2);
+  for (let m = mMin; m <= mMax; m++) {
+    for (let i = 0; i + m <= T; i++) {
+      if (pref[i+m] - pref[i] === 0) continue;
+      const r = scoreWindow(sims, sc.id, i, m);
+      const score = 2*r.sum/(n+m);
+      if (!best || score > best.score + 1e-9) best = {score, i, m, pairs:r.pairs};
+    }
+  }
+  return best || none;
+}
+function scoreWindow(sims, id, i, m){
+  const used = new Uint8Array(m), pairs = new Array(sims.length).fill(null);
+  let sum = 0;
+  // сначала точные совпадения, потом нечёткие — так жадный подбор не «съедает» нужные слова
+  for (let a = 0; a < sims.length; a++) {
+    for (let k = 0; k < m; k++) if (!used[k] && sims[a].get(id[i+k]) === 1) { used[k] = 1; pairs[a] = {j:i+k, sim:1}; sum += 1; break; }
+  }
+  for (let a = 0; a < sims.length; a++) {
+    if (pairs[a]) continue;
+    let bk = -1, bs = 0;
+    for (let k = 0; k < m; k++) { if (used[k]) continue; const s = sims[a].get(id[i+k]) || 0; if (s > bs) { bs = s; bk = k; } }
+    if (bk >= 0) { used[bk] = 1; pairs[a] = {j:i+bk, sim:bs}; sum += bs; }
+  }
+  return {sum, pairs};
+}
+function matchAll(){
+  const sc = compileScript(E.script.value);
+  for (const seg of S.segments) {
+    if (seg.match && seg.match.scriptText === sc.text) continue;
+    const r = matchWords(seg.sample.words, sc);
+    const diffs = [];
+    seg.sample.words.forEach((w, a) => {
+      const p = r.pairs[a];
+      if (!p) diffs.push({kind:"missing", ocr:w.raw, script:"", conf:w.conf});
+      else if (p.sim < 1) diffs.push({kind:"fuzzy", ocr:w.raw, script:sc.toks[p.j].raw, conf:w.conf});
+    });
+    seg.match = {scriptText:sc.text, score:r.score, i:r.i, m:r.m, pairs:r.pairs, diffs};
+  }
+  applyVerdicts();
+}
+function applyVerdicts(){
+  const hi = clamp(num(E.hi,60),1,100)/100, lo = clamp(num(E.lo,30),0,99)/100, strict = num(E.strict,75);
+  for (const seg of S.segments) {
+    const m = seg.match; if (!m) continue;
+    const confident = m.diffs.some((d) => d.conf >= strict);
+    seg.verdict = m.score >= hi ? (confident ? "partial" : "ok") : m.score >= lo ? "partial" : "miss";
+  }
+}
+
+/* ---------- run ---------- */
+async function run(){
+  if (!S.url || S.running) return;
+  if (typeof Tesseract === "undefined") { showError("OCR-движок не загрузился. Нужен доступ к интернету при первом запуске (cdn.jsdelivr.net), затем обновите страницу."); return; }
+  hideError();
+  const interval = clamp(num(E.interval,2), 0.25, 30);
+  const region = {...S.region}, mode = E.pre.value, minConf = clamp(num(E.minWord,40),0,95), lang = E.lang.value;
+  S.running = true; S.cancel = false; S.samples = []; S.segments = []; S.interval = interval;
+  S.runInfo = {interval, region, regionName:S.regionName, lang, started:new Date(), frames:0, total:0, elapsed:0, cancelled:false};
+  updateButtons(); render();
+  E.progress.hidden = false;
+  const v = document.createElement("video");
+  v.muted = true; v.playsInline = true; v.preload = "auto";
+  v.style.cssText = "position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none";
+  document.body.appendChild(v);
+  try {
+    const worker = await ensureWorker(lang, isFull(region) ? 11 : 6);
+    v.src = S.url;
+    await once(v, "loadeddata");
+    const total = await realDuration(v), times = [];
+    for (let t = Math.min(0.1, total/2); t < total; t += interval) times.push(t);
+    S.runInfo.total = times.length;
+    const t0 = performance.now();
+    for (let i = 0; i < times.length; i++) {
+      if (S.cancel) { S.runInfo.cancelled = true; break; }
+      await seek(v, times[i]);
+      const crop = grabCrop(v, region, mode);
+      const {data} = await worker.recognize(crop);
+      const o = parseOcr(data, minConf);
+      S.samples.push({t:times[i], text:o.text, words:o.words, conf:o.conf, thumb:o.words.length ? thumbnail(v, region) : null});
+      S.runInfo.frames = i+1;
+      const el = (performance.now()-t0)/1000, left = el/(i+1)*(times.length-i-1);
+      setStatus(`Кадр ${i+1} из ${times.length} · ${tc(times[i])} · осталось ≈ ${dur(left)}`, (i+1)/times.length);
+      scheduleRender();
+    }
+    S.runInfo.elapsed = (performance.now()-t0)/1000;
+    setStatus(S.runInfo.cancelled ? `Остановлено на кадре ${S.runInfo.frames} из ${times.length}` : `Готово: ${times.length} кадров за ${dur(S.runInfo.elapsed)}`, 1);
+  } catch (e) {
+    console.error(e);
+    showError("Проверка прервалась: " + (e && e.message ? e.message : String(e)) + ". Если это первый запуск — проверьте интернет: OCR-движок и языковые пакеты скачиваются с CDN.");
+  } finally {
+    v.removeAttribute("src"); v.load(); v.remove();
+    S.running = false;
+    rebuild(); render(); updateButtons();
+  }
+}
+function rebuild(){
+  S.segments = segmentize(S.samples, S.interval, S.duration);
+  matchAll();
+}
+let renderTimer = 0;
+function scheduleRender(){
+  if (renderTimer) return;
+  renderTimer = setTimeout(() => { renderTimer = 0; rebuild(); render(); }, 600);
+}
+E.run.addEventListener("click", run);
+E.stop.addEventListener("click", () => { S.cancel = true; E.stop.disabled = true; });
+E.rematch.addEventListener("click", () => { for (const s of S.segments) s.match = null; matchAll(); render(); });
+[E.hi, E.lo, E.strict].forEach((el) => el.addEventListener("input", () => { applyVerdicts(); render(); }));
+[E.hideLow, E.lowConf].forEach((el) => el.addEventListener("input", render));
+document.querySelectorAll('input[name="show"]').forEach((el) => el.addEventListener("change", render));
+
+function updateButtons(){
+  E.run.disabled = !S.url || S.running;
+  E.run.textContent = S.samples.length && !S.running ? "Проверить заново" : "Проверить видео";
+  E.stop.hidden = !S.running; E.stop.disabled = false;
+  E.rematch.disabled = S.running || !S.samples.length;
+  E.expMd.disabled = E.expCsv.disabled = S.running || !S.segments.length;
+  E.file.disabled = S.running;
+}
+function setStatus(text, p){ E.status.textContent = text; if (typeof p === "number") E.barFill.style.width = (p*100).toFixed(1)+"%"; }
+function showError(t){ E.error.textContent = t; E.error.hidden = false; }
+function hideError(){ E.error.hidden = true; }
+
+/* ---------- render ---------- */
+function seekPreview(t){
+  E.preview.pause();
+  E.preview.currentTime = t + 0.05;
+  E.stage.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"center"});
+}
+function visibleSegments(){
+  const mode = document.querySelector('input[name="show"]:checked').value;
+  const low = E.hideLow.checked ? num(E.lowConf, 50) : -1;
+  return S.segments.filter((s) => (mode === "all" || s.verdict !== "ok") && s.sample.conf >= low);
+}
+function ocrHtml(seg){
+  const m = seg.match;
+  return seg.sample.words.map((w, a) => {
+    const p = m && m.pairs[a];
+    if (!p) return `<span class="w-miss" title="Нет в сценарии · уверенность ${Math.round(w.conf)}%">${esc(w.raw)}</span>`;
+    if (p.sim < 1) return `<span class="w-fuzzy" title="В сценарии: ${esc(S.compiled.toks[p.j].raw)} · уверенность ${Math.round(w.conf)}%">${esc(w.raw)}</span>`;
+    return esc(w.raw);
+  }).join(" ");
+}
+function fragment(seg, ctx){
+  const m = seg.match, toks = S.compiled ? S.compiled.toks : [];
+  if (!m || m.i < 0) return null;
+  const a = Math.max(0, m.i-ctx), b = Math.min(toks.length, m.i+m.m+ctx);
+  return {
+    before:(a > 0 ? "… " : "") + toks.slice(a, m.i).map((t) => t.raw).join(" "),
+    core:toks.slice(m.i, m.i+m.m).map((t) => t.raw).join(" "),
+    after:toks.slice(m.i+m.m, b).map((t) => t.raw).join(" ") + (b < toks.length ? " …" : ""),
+  };
+}
+function render(){
+  const has = S.segments.length > 0 || S.running || S.samples.length > 0;
+  E.empty.hidden = has; E.results.hidden = !has;
+  updateButtons();
+  if (!has) return;
+
+  const c = {ok:0, partial:0, miss:0};
+  for (const s of S.segments) c[s.verdict]++;
+  E.summary.innerHTML =
+    `<div class="stat miss"><b>${c.miss}</b><span>не найдено</span></div>` +
+    `<div class="stat partial"><b>${c.partial}</b><span>неточных</span></div>` +
+    `<div class="stat ok"><b>${c.ok}</b><span>совпадает</span></div>`;
+  const ri = S.runInfo;
+  const words = S.compiled ? S.compiled.toks.length : 0;
+  E.meta.textContent = ri
+    ? `Проверено кадров: ${ri.frames}${ri.total ? " из " + ri.total : ""} · шаг ${ri.interval} с · интервалов с текстом: ${S.segments.length} · слов в сценарии: ${words}` + (words ? "" : " — вставьте сценарий, иначе всё будет «не найдено»")
+    : "";
+
+  // timeline
+  const D = S.duration || 1;
+  E.track.querySelectorAll(".seg").forEach((n) => n.remove());
+  const frag = document.createDocumentFragment();
+  S.segments.forEach((s, idx) => {
+    const b = document.createElement("button");
+    b.className = "seg " + s.verdict;
+    b.style.left = (s.start/D*100)+"%";
+    b.style.width = Math.max(0.35, (s.end-s.start)/D*100)+"%";
+    b.title = `${tc(s.start)} – ${tc(s.end)} · ${VERDICT[s.verdict].label}\n${s.sample.text}`;
+    b.setAttribute("aria-label", `${tc(s.start)}, ${VERDICT[s.verdict].label}`);
+    b.addEventListener("click", () => { seekPreview(s.start); const card = document.getElementById("seg-"+idx); if (card) card.scrollIntoView({block:"nearest"}); });
+    frag.appendChild(b);
+  });
+  E.track.insertBefore(frag, E.playhead);
+  E.ticks.innerHTML = [0, .25, .5, .75, 1].map((f) => `<span>${tc(D*f).slice(0,8)}</span>`).join("");
+
+  // cards
+  const vis = visibleSegments();
+  if (!vis.length) {
+    E.list.innerHTML = `<div class="empty"><p style="margin:0">${S.running ? "Ищем текст на кадрах…" : S.segments.length ? "Под фильтр ничего не попало." : "Текст на кадрах не найден. Попробуйте другую область титров или шаг выборки поменьше."}</p></div>`;
+    return;
+  }
+  E.list.innerHTML = vis.map((s) => {
+    const idx = S.segments.indexOf(s), m = s.match, f = fragment(s, 8);
+    const low = s.sample.conf < num(E.lowConf, 50);
+    const diffs = m ? m.diffs.filter((d) => d.kind === "fuzzy" || d.conf >= num(E.strict,75)) : [];
+    return `<article class="card ${s.verdict}" id="seg-${idx}">
+      <div class="card-side">
+        <img class="thumb" src="${s.sample.thumb}" alt="Кадр ${tc(s.sample.t)}" data-t="${s.start}">
+        <button class="tc" data-t="${s.start}">${tc(s.start)} – ${tc(s.end)}</button>
+        <span class="metric">${s.frames} ${s.frames === 1 ? "кадр" : s.frames < 5 ? "кадра" : "кадров"} подряд</span>
+      </div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="pill ${s.verdict}">${VERDICT[s.verdict].label}</span>
+          <span class="metric">схожесть <b>${Math.round((m ? m.score : 0)*100)}%</b></span>
+          <span class="metric${low ? " low" : ""}">уверенность OCR <b>${Math.round(s.sample.conf)}%</b>${low ? " — возможно, брак распознавания" : ""}</span>
+        </div>
+        <div><p class="lbl">На экране</p><div class="ocr">${ocrHtml(s)}</div></div>
+        <div><p class="lbl">Ближайший фрагмент сценария</p><div class="frag">${f ? `${esc(f.before)} <mark>${esc(f.core)}</mark> ${esc(f.after)}` : "Похожих слов в сценарии нет."}</div></div>
+        ${diffs.length ? `<ul class="diffs" aria-label="Пословные расхождения">${diffs.map((d) => `<li>${d.kind === "fuzzy" ? `${esc(d.ocr)} → ${esc(d.script)}` : `${esc(d.ocr)} → нет в сценарии`}</li>`).join("")}</ul>` : ""}
+      </div>
+    </article>`;
+  }).join("");
+}
+E.list.addEventListener("click", (e) => { const t = e.target.closest("[data-t]"); if (t) seekPreview(parseFloat(t.dataset.t)); });
+E.preview.addEventListener("timeupdate", () => { E.playhead.style.left = (E.preview.currentTime/(S.duration||1)*100)+"%"; });
+
+/* ---------- export ---------- */
+function save(name, text, type){
+  const blob = new Blob([text], {type});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const baseName = () => (S.fileName || "video").replace(/\.[^.]+$/, "");
+function diffText(m){ return m ? m.diffs.map((d) => d.kind === "fuzzy" ? `${d.ocr} → ${d.script}` : `${d.ocr} → нет в сценарии`).join("; ") : ""; }
+function regionText(r){ return isFull(r) ? "весь кадр" : `x ${Math.round(r.x*100)}%, y ${Math.round(r.y*100)}%, ${Math.round(r.w*100)}×${Math.round(r.h*100)}%`; }
+function exportMd(){
+  const ri = S.runInfo || {}, c = {ok:0, partial:0, miss:0};
+  S.segments.forEach((s) => c[s.verdict]++);
+  const L = [];
+  L.push(`# Отчёт СТОП-КАДР · OCR — ${S.fileName}`, "");
+  L.push(`- Дата проверки: ${new Date().toLocaleString("ru-RU")}`);
+  L.push(`- Длительность видео: ${tc(S.duration)}`);
+  L.push(`- Шаг выборки: ${ri.interval} с · кадров проверено: ${ri.frames}${ri.cancelled ? " (проверка остановлена досрочно)" : ""}`);
+  L.push(`- Область OCR: ${regionText(ri.region || S.region)} · язык: ${ri.lang}`);
+  L.push(`- Пороги: совпадает ≥ ${num(E.hi,60)}%, неточное ≥ ${num(E.lo,30)}%, пословные расхождения учитываются при уверенности OCR ≥ ${num(E.strict,75)}%`);
+  L.push("", `**Итого:** не найдено — ${c.miss}, неточных — ${c.partial}, совпадает — ${c.ok}.`, "");
+  L.push("> Инструмент выдаёт кандидатов на брак, а не окончательный вердикт. «Не найдено» при низкой уверенности OCR часто означает ошибку распознавания, а не титра.", "");
+  S.segments.forEach((s, k) => {
+    const m = s.match, f = fragment(s, 0);
+    L.push(`## ${k+1}. ${tc(s.start)} – ${tc(s.end)} · ${VERDICT[s.verdict].md}`, "");
+    L.push(`- **На экране:** «${s.sample.text.replace(/\n/g, " / ")}»`);
+    L.push(`- **Ближайший фрагмент сценария:** ${f ? `«${f.core}»` : "—"}`);
+    L.push(`- **Схожесть:** ${Math.round((m ? m.score : 0)*100)}% · **уверенность OCR:** ${Math.round(s.sample.conf)}%`);
+    const dt = diffText(m); if (dt) L.push(`- **Расхождения по словам:** ${dt}`);
+    L.push("");
+  });
+  save(`${baseName()} — отчёт OCR.md`, L.join("\n"), "text/markdown;charset=utf-8");
+}
+function exportCsv(){
+  const q = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  const rows = [["№","Начало","Конец","Вердикт","На экране","Фрагмент сценария","Схожесть, %","Уверенность OCR, %","Расхождения по словам"]];
+  S.segments.forEach((s, k) => {
+    const f = fragment(s, 0);
+    rows.push([k+1, tc(s.start), tc(s.end), VERDICT[s.verdict].label, s.sample.text.replace(/\n/g," / "), f ? f.core : "", Math.round((s.match ? s.match.score : 0)*100), Math.round(s.sample.conf), diffText(s.match)]);
+  });
+  // BOM + «;» — чтобы Excel с русской локалью открыл файл без мастера импорта
+  save(`${baseName()} — отчёт OCR.csv`, "﻿" + rows.map((r) => r.map(q).join(";")).join("\r\n"), "text/csv;charset=utf-8");
+}
+E.expMd.addEventListener("click", exportMd);
+E.expCsv.addEventListener("click", exportCsv);
+
+window.addEventListener("beforeunload", (e) => { if (S.running) { e.preventDefault(); e.returnValue = ""; } });
+render();
+})();
+</script>
+</body>
+</html>
