@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>СТОП-КАДР</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@600&display=swap">
+<style>
+:root{--bg:#EEF1F0;--surface:#FFFFFF;--ink:#1A2026;--muted:#5A6570;--line:#D3D9D8;--accent:#2750C8;--accent-ink:#FFFFFF;--bad:#B6372A;
+  --f-display:"Unbounded","Onest",system-ui,sans-serif;--f-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media (prefers-color-scheme: dark){:root{color-scheme:dark;--bg:#11161B;--surface:#192027;--ink:#E3E7EA;--muted:#97A2AC;--line:#2D3741;--accent:#809DF3;--accent-ink:#0D1320;--bad:#EF8272}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body);padding:0 16px}
+.wrap{max-width:860px;margin:0 auto;padding-block:56px 48px;display:grid;gap:28px}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(28px,5vw,40px);margin:0;display:flex;align-items:center;gap:14px;letter-spacing:.02em}
+h1 i{width:16px;height:16px;border-radius:50%;background:var(--bad);display:inline-block}
+.lead{margin:0;color:var(--muted);max-width:62ch;font-size:17px}
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;display:grid;gap:10px;align-content:start}
+.tool h2{margin:0;font-size:18px}
+.tool p{margin:0;color:var(--muted);font-size:15px}
+.tag{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.btn{justify-self:start;display:inline-block;background:var(--accent);color:var(--accent-ink);text-decoration:none;font-weight:600;border-radius:6px;padding:10px 16px;margin-top:4px}
+.btn.ghost{background:none;color:var(--accent);border:1px solid var(--line)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+footer{font-size:14px;color:var(--muted)}
+footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><i aria-hidden="true"></i>СТОП-КАДР</h1>
+  <p class="lead">Проверка видеосюжетов перед публикацией: инструмент проходит по ролику, сверяет его со сценарием и выдаёт список моментов с таймкодами, которые стоит проверить глазами.</p>
+  <div class="tools">
+    <section class="tool">
+      <span class="tag">Без ИИ · работает в браузере</span>
+      <h2>Титры и плашки против сценария</h2>
+      <p>Распознаёт текст на экране (Tesseract.js) и ищет его в сценарии. Ловит опечатки в фамилиях, должностях и цифрах. Видео не покидает ваш компьютер.</p>
+      <a class="btn" href="video-text-qa.html">Открыть OCR-проверку</a>
+    </section>
+    <section class="tool">
+      <span class="tag">С ИИ · только в claude.ai</span>
+      <h2>Смысл кадра против текста</h2>
+      <p>Claude смотрит на контрольные кадры и оценивает, совпадает ли картинка с тем, о чём говорится в сценарии. Запускается как Claude Artifact, запросы идут из квоты пользователя.</p>
+      <a class="btn ghost" href="video-qa.html">Посмотреть пример отчёта</a>
+    </section>
+  </div>
+  <footer>Исходный код и описание: <a href="https://github.com/aruzhanrakhimova/stop-kadr">github.com/aruzhanrakhimova/stop-kadr</a></footer>
+</div>
+</body>
+</html>

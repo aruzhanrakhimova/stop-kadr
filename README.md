@@ -2,6 +2,8 @@
 
 Проект по [PRD.md](PRD.md). Два прототипа.
 
+Сайт: https://aruzhanrakhimova.github.io/stop-kadr/ (OCR-проверка: https://aruzhanrakhimova.github.io/stop-kadr/video-text-qa.html)
+
 ## `video-text-qa.html` — вариант Б, OCR без ИИ (основной инструмент)
 
 Сверяет текст на экране (титры, плашки) с текстом сценария.
